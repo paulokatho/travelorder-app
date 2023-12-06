@@ -1,5 +1,6 @@
 package com.katho.travelorder;
 
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -23,7 +24,11 @@ public class TravelOrderResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @RunOnVirtualThread
     public List<TravelOrderDTO> orders() {
+
+        //SYSOUT PARA IMPRIMIR A VIRTUAL THREAD
+        System.out.println("Virtual Thread Katho - " + Thread.currentThread());
         return TravelOrder.<TravelOrder>listAll().stream()
                 .map(
                         order -> TravelOrderDTO.of(
