@@ -21,7 +21,7 @@ This application requires PostgreSQL (standalone or in a Docker container).
 It's recommended to setup PostgreSQL as a Docker container for local development purposes. You can do this with the following command:
 
 ```
-sudo docker run --name app-travel-postgres -p 5432:5432 -e POSTGRES_DB=`travel-app-postgres` -e POSTGRES_USER=travel-app-postgres -e POSTGRES_PASSWORD=travel-app-postgres -e MYSQL_ROOT_PASSWORD=admin -d postgres:latesT
+sudo docker run --name app-travel-postgres -p 5432:5432 -e POSTGRES_DB=`travel-app-postgres` -e POSTGRES_USER=travel-app-postgres -e POSTGRES_PASSWORD=travel-app-postgres -e MYSQL_ROOT_PASSWORD=admin -d postgres:latest
 ```
 > **_NOTE:_** If you specified a different username and/or password, remember to update in ```application.properties```.
 
