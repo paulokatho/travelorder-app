@@ -1,0 +1,355 @@
+
+
+- DO MONÓLITO AO MICROSERVICE, USANDO JAVA NO BACKEND
+====================================================================================
+
+	- link dos projetos no git
+		- https://github.com/paulokatho/travelorder-app
+		- https://github.com/paulokatho/flight-app
+		- https://github.com/paulokatho/hotel-app
+
+
+- AULA DE HOJE
+====================================================================================
+
+- Acrescentar Health Check e Full Tolerance
+
+
+
+- BORA PRO PEGA!!!
+====================================================================================
+
+- Vamos utilizar Kubernetes para conteinizar nossa aplicação
+
+	- Nossa aplicação vai rodar num Kubernetes, pois ele é o melhor do mercado atualmente
+	- Essa solução para orquestração de containers
+	- Vamos conteinerizar porque é a forma mais escaĺavel, efetiva, flexiva, que da mais opções, dar isolamento, fornece um ambiente muito mais estável, temos mais recursos para escalabilidade que temos nos dias de hoje para aplicações de software
+
+
+- HEALTH CHECK
+====================================================================================
+
+- SMALLRYE
+
+	- Vamos entender o que é o SmallRye, Microprofile e o Health Check
+
+		- Se formos no site do Quarkus
+			- code.quarkus.io
+		- E digitarmos SmallRye, vamos ver que tem inumeras opções... e o que é o SmallRye
+		- Antes precisamos entender outra coisinha, Microprofile
+
+		- O que é o Microprofile
+			- Ele é um conjunto de especificações para você construir microserviços usando java
+			- Ele também nasceu a partir do Jakarta EE
+				- Na primeira versão do Microprofile, escolheram algumas poucas API's do Jakarta EE e criaram essa primeira versão
+				- Jax Rs, Json B, CDI e mais algumas
+			- E essas eram algumas das API's essenciais para se contruir microserviços
+
+			- Com o passar do tempo foram trazendo mais especificações do Jakarta para o Microprofile e hoje é um baita projeto open source, o Microprofile
+
+			- E como o objetivo de toda especificação é ela ser implementada, assim como o Java que também é uma especificação
+			- Então tem a especificação do Java e os varios Vendors, implementam as especificações e distribuem e com o Microprofile é assim também
+
+		- Então o SmallRye é a implementação do Microprofile que está dentro do Quarkus
+			- O Quarkus não é uma implementação do Microprofile - O Quarkus contém uma implementação do Microprofile dentro dele
+
+			- E voltando ao Health Check, o Microprofile tem uma implementação de Health Check e hoje vamos usar ela
+
+
+		- Frisando: - Então o SmallRye é a implementação do Microprofile que está dentro do Quarkus
+
+		- Lá no site do Quarkus é só digitar health que vai aparecer a extensão
+			- quarkus-smallrye-health
+
+	- Vamos adicionar esse Health Check nos 3 projetos que estamos fazendo, no flight, no hotel e no travelorder
+
+		- mvn quarkus:add-extension -Dextension="quarkus-smallrye-health"
+
+	- Endpoint com Health Check
+		- Com essa essa extensão nas nossas aplicação (nesse caso microserviços) eu já tenho disponível o Health Check para elas
+
+		- Ele já disponibiliza localmente para a gente conferir se rodou certinho
+		- Fica mais ou menos assim
+
+			{
+			    "status": "UP",
+			    "checks": [
+			        {
+			            "name": "Database connections health check",
+			            "status": "UP",
+			            "data": {
+			                "<default>": "UP"
+			            }
+			        }
+			    ]
+			}
+
+
+	--------------------------------------------------------
+		VAMOS ENTENDER O PORQUÊ DE TUDO ISSO
+	--------------------------------------------------------
+
+		- A especificação do Health Check do Microprofile determina isso tudo
+		
+		- ENDPOINT
+			- Uma vez que você tenha essa extensão do Health Check dentro da sua aplicação, essa extensão precisa prover para sua aplicação pelo menos um endpoint de verificação do Health Check da sua aplicação
+
+- KUBERNETES
+	- Como funciona o Health Check dentro do Kubernetes 
+
+
+	************************************************************************************************************************
+	
+	---- OpenShift ----
+
+	- OpenShift é uma implementação do Kuberntes, a Red Hat criou o Sandbox que vc tem acesso por 30 dias.
+		- A instância dele morre em 30 dias, mas aí vc pode criar todo mês uma instância para poder ir utilizando
+
+	- Mais detalhes sobre o OpenShift:
+
+		- Instanciar um Kubernetes na maquina mesmo é um tanto complicado
+		- Se tentou em alguma nuvem, também não é uma coisa mais simples do mundo
+		- Também não é algo barato, pois o Kubernetes é uma solução parruda!
+		- Por isso ele acaba ocupando bastante recursos
+
+		- Existe essa implementação do Kubernetes que é o OpenShift
+			- Como todo projeto Open Source, como o Linux, vai existir varias implementações desse mesmo kernel, como Ubuntu, Mint e etc...
+
+			- No Kubernetes tem o mesma ideia, ele tem a implementação dele mais default que é o Kubernetes Vanila que é o Kubernetes e existem várias implementações desse Kubernetes Vanila
+				Então o OpenShift é uma dessas implementações e que acaba sendo o Kubernetes na verdade
+
+			- OpenShift Developer Sandbox
+				
+				- esse cara é uma instância do OpenShift(que é o Kubernetes), que o dev tem acesso gratuitamente
+				- essa instância dura 1 mês e depois ela é removida, porém até em novembro de 2023, continua assim... Então 1 vez removida vc pode provisionar ela novamente e vai ter o seu 
+					OpenShift gratuitamente novamente
+				- é uma instância com 1 única máquina, mas tem muitas funcionalidades que o Kubernetes precisa
+				- para utilizar em um ambiente em nuvem, então é de boas
+
+				- OBSERVAÇÃO:
+					- também podemos utilizar em alguma outra nuvem (mas aí temos que aprender como fazer isso em outras nuvens)
+
+			- Agora vou criar minha conta no Sandbox e tentar começar a utilizar
+
+
+
+	************************************************************************************************************************
+
+	- 2 Health Checks principais
+		- Claro que existem outros, mas vamos abordar esses 2 principais agora 
+
+		- 2 Health Checks principais dentro do contexto do Kubernetes
+			
+			- Liveness
+				- Esse serve para dizer se sua aplicação está viva ou não
+				- Ou seja, se eu bater num endpoint de Liveness e voltar um (true), sua aplicação está vida
+				- Qualquer coisa diferente disse significa que a sua aplicação não está viva
+
+				- O que acontece no Kubernetes se o Liveness falhar?
+					- O Kubernetes vai reiniciar aquele POD
+					- Então ele reinicia para você caso haja algum problema no Liveness
+					- Tem outras configurações de RETRY e outras, mas no básico ele já faz isso por si só
+
+				- Então ele diz se a aplicação está viva ou não
+					- Porém se sua aplicação estiver viva, não quer dizer que ela pode receber requisições ou não
+   					- E por isso vamos ver agora o Readiness
+
+			- Readiness
+				- Esse cara diz se sua aplicação está pronta, READY ou não
+
+				- Imagine que para sua aplicação funcionar precisa estar conectada com um banco de dados externa, precisa acessar um outro serviço externo
+				- Então quando vier de volta o Health Check de Readiness para essa aplicação
+					- Ela já vai verificar se consegue acessar esse banco de dados externos, por exemplo
+					- Ou acessar um serviço externo ou qualquer outra coisa que seja
+
+				- Se estiver tudo ok, tudo pronto, o Readiness vai ser true
+
+	- Agora tendo visto tudo isso, como o Kubernetes vai tratar o estado o Liveness ou Readiness?
+		- Liveness
+			- Se falhou, reinicia o POD, se retornou true é vida que segue normalmente para a aplicação
+		- Readiness
+			- Se falhou, o Kubernetes espera, tenta de novo daqui a pouco, ele não vai mandar requisição ainda
+			- Se não falhou, ele toooooma requisição para os Endpoint
+
+	- Então vamos implementar o Liveness e o Readiness em alguns dos nosso serviços (flight, hotel e travelorder)
+
+
+	- TRAVEL ORDER
+		- No serviço de travelorder, como vamos utilizar chamada para os outros serviços de flight e hotel, vamos impelementar o Liveness e o Readiness para garantir melhor a disponibilidade da nossa aplicação travelorder
+
+
+		- Liveness
+
+			@Liveness
+			public class LivenessCheck implements HealthCheck {...código...}
+
+		- Readiness
+			- Aqui as implementações das regras de negócios depende muito da empresa e dos requisitos
+			- Mas vamos fazer uma implmentação default só para aprender
+
+			- Então como o Readiness retorna se a aplicação já pode receber requisição, então podemos implementar os serviços que já estão funcionando e implementados de FlightService e HotelService e assim verificamos se está ok com a comunicação dos serviços
+
+			- Podemos implementar algo como isso, para questões de estudo
+
+				@Readiness
+				public class ReadinessCheck implements HealthCheck {
+
+				    @RestClient
+				    @Inject
+				    FlightService flightService;
+
+				    @RestClient
+				    @Inject
+				    HotelService hotelService;
+
+				    @Override
+				    public HealthCheckResponse call() {
+				        List<TravelOrderDTO> ordersList = ordersList = TravelOrder.<TravelOrder>listAll().stream()
+				                .map(
+				                        order -> TravelOrderDTO.of(
+				                                order,
+				                                flightService.findByTravelOrderId(order.id),
+				                                hotelService.findByTravelOrderId(order.id)
+				                        )
+				                ).collect(Collectors.toList());
+
+				        if (ordersList.contains(ordersList) || ordersList.isEmpty()) {
+				            return HealthCheckResponse.up("Estou vivo! - ReadinessCheck");
+				        } else {
+				            return HealthCheckResponse.down("NÃO estou vivo! - ReadinessCheck");
+				        }
+				    }
+				}
+
+
+
+- FAULT TOLARENCE
+====================================================================================
+
+
+	- Quando temos aplicações distribuídas começamos a gente começa a ter indisponibilizade temporaria, e também erros e erros sistêmicos. Sistêmicos não somente porque está no sistema, mas porque o erro começa em um lugar e começa a se espalhar por todo
+		o seu cluster ou por todas as suas aplicações
+		Para tentar evitar ou amenizar isso podemos implementar alguns cuidados e com ele vamos ver um pouco de Fault Tolerance
+
+	- Vamos adicionar algumas coisas para deixar nossa aplicação um pouco mais experta para possíveis erros
+
+	- Na aplicação Rest Client vamos implementar esse kara
+		- vamos mexer primeiro na interface HotelService
+
+	- Imagina que tem uma aplicação que retorna em segundos e está demorando 1 minuto, 3 minutos ou mais
+		- Esse tipo de coisa não dá pra esperar pra sempre, para esses casos temos que definir um tempo para essas coisas. Para aguardar pelo retorno de um serviço
+		- Até porque se ficarmos esperando indefinidamente o client também está esperando. E atrás dele ainda tem uma pessoa, tem alguém esperando. Não queremos deixar nossos usuários esperando eternamente
+		- Mesmo que tivemos 1 problema, temos que lidar com o problema, não podemos ficar simplismente esperando
+
+		- Então vamos adicionar um Timeout (@Timeout)
+
+		- no projeto (travelorder) vamos adicionar
+			- adicionar nas classes HotelService e no FlightService 
+				- no metodo, por exemplo: findByTravelOrderId()
+					- a anotação: @Timeout(unit = ChronUnit.SECONDS, value = 2)
+
+					    @Timeout(unit = ChronoUnit.SECONDS, value = 2)
+    					public HotelDTO findByTravelOrderId(@QueryParam("travelOrderId") long travelOrderId);
+
+    		- adicionar nos projetos hotel-app e no flight-app 
+    			- aqui podemos adicionar um Thread.sleep(3000) de 3 segundos, pois aí testamos nosso Full Tolerance que é de 2 segundos lá no projeto Rest Client (travelorder)
+
+
+    - FALL BACK
+
+    	- Depois que implementamos tudo isso, podemos utilizar um Fallback para poder retornar uma mensagem mais amigável ao client e não algum erro que o Full Tolerance pegou
+
+    	- Aí é só voltar nas classes onde vc implementou o @Timeout() e acrescentar a annotation @Fallback e configurar um metodo de Fallback, por exemplo no HotelService e FlightService que estão com o @Timeout()
+    	- No metodo de Fallback sempre tem que retornar o mesmo retorno do metodo que você escolheu para retornar essa validação
+
+    	- Uma ideia para esse exemplo é quando o Fallback retornar com problemas, a gente tem um atributo na classe HotelDTO que retorna as noites que a pessoa agendou na viagem, então podemos validar com (nights = -1)
+
+    	- Ex, o método que esta implementado no Fallback e o método default (sempre tem que ser default - SEMPRE), para vermos como fica
+    	- Classe abaixo é a HotelService.java
+
+		    @GET
+		    @Path("findByTravelOrderId")
+		    @Produces(MediaType.APPLICATION_JSON)
+		    @Timeout(unit = ChronoUnit.SECONDS, value = 2)
+	--->    @Fallback(fallbackMethod = "fallback")
+		    public HotelDTO findByTravelOrderId(@QueryParam("travelOrderId") long travelOrderId);
+
+		    
+
+	--->    default HotelDTO fallback(long travelOrderId) {
+		        HotelDTO hotelDTO = new HotelDTO();
+		--->    hotelDTO.setNights(-1);
+
+		        System.out.println("FALL BACK HOTEL....");
+
+		        return hotelDTO;
+
+		        //PODE-SE HAVER UMA VALIDAÇÃO NO FRONT QUE QUANDO VOLTA -1 É PQ A APLICAÇÃO ESTÁ COM PROBLEMAS, POR ISSO
+		        //COLOCAMOS -1 NO RETORNO DO OBJETO flightDTO
+		    }
+
+
+	- CIRCUIT BREACKER
+
+		- Imagine que agora com o exemplo acima, sempre vai dar erro, nesse caso de @Timeout, pois implementamos esse erro para fins educacionais e também na nossa classe HotelService sempre vai retonar o Thread.sleep() que é 
+			o que vai ocasionar o erro, pois o sleep() está para 3 segundos o nosso verificador de retorno do serviço está com 2 segundos, então vai sempre dar erro e era isso mesmo
+
+		- Foi feito isso para podemos entender esse outro recuros é o Circuit Breacker
+			- Imagine que se toda hora retorna erro aquele serviço, toda hora erro, erro, erro, erro.... podemos presumir que existe um problema naquele serviço, OK?
+
+		- É como se fosse o disjuntor da sua casa.... 
+			- Quando tem um curto circuito, o disjuntor abre (pois sua casa é uma rede fechada) e se dá um curto, o circuito abre e interrompe todo o cuito
+			- E esse circuito interrompendo tudo, impede que esse curto saia queimando todos os aparelhos da sua casa
+
+		******************************************************************************************************************************************************************
+		- Quando falamos de componentes distribuídos que estão conectados em rede, que estão num Cluster.... que de alguma forma estão distribuídos, mas estão conectados
+		******************************************************************************************************************************************************************
+
+		- Imagine agora que existe um serviço, que chama outro serviço e depois chama outro serviço... e dá erro no terceiro serviço.
+			Aí o primeiro fica aguardando a resposta do primeiro, o segundo a resposta do terceiro e quando vai se ver temos uma reação em cadeia com vários serviços com erro, porém o erro foi em 1 só e acabou gerando a reação em cadeia
+
+			- Então se tem como captar esse erro, por exemplo no terceiro serviço e já enviar logo de cara o erro dele.... COSTUMA ser uma prática um pouco melhor do que deixar todo mundo esperando
+
+			- Parece complicado, mas é mesmo..... esse é o CIRCUIT BREACKER -----> mas na vdd é simples, vamos entendendo
+
+		- Esse Circuit Breacker também vai no método que implementados o @Timeout e o @Fallback, como no exemplo do HotelService acima
+
+			- Atributos do @CircuitBreaker
+				- requestVolumeThreshold = 4
+
+					- esse cara acima verifica quais são minhas amostragens
+					- minhas amostragem é quando preciso verifiar alguma coisa de acordo com algum parâmetro e nesse caso 4 são as quantidades que verificarei de amostragem
+
+				- failureRatio = 0.5
+
+					- esse cara verifica qual é a porcentagem que falha que eu verifico para identificar que tenho um problema
+					- nesse caso 0.5 são 50% de falha, então estamos assumindo que se metade das 4 amostragens (ou seja 2 amostragem) tiverem erro ou problema, então aciono o @CircuitBreaker
+
+				- delay = 5000,
+
+					- esse cara a hora que percebe que tem problema, ou seja, atingiu os 50% do failureRatio = 0.5, ele entra em ação, aguarda 5 seguntos (igual a 5000 milissegundos) para tentar novamente acessar o serviço
+
+				- successThreshold =
+
+					- depois que ele aguardou o delay de 5 segundo ele tem que saber quantas requisições depois do delay de 5 segundos ele pode assumir que está tudo bem para continuar o processo do nossa aplicação que está distribuída
+
+
+
+			- assim podemos testar nosso Circuit Breacker
+
+
+		- Para testar é só colocar os microserviços para rodar em loop e criar um metodo ou algo que dê erro, mas que libere em seguida pra você poder testar
+			Ex:
+				- O Rest Client ou o client está tentando acessar nossos 3 microserviços e estamos monitorando os 3, nesse caso o microserviço travelorder chama o HotelService e o FlightService, sendo assim se qualquer um deles der problema
+					temos como monitorar
+					Então colocamos o @Timeout(2) para 2 segundos no nosso microserviço de travelorder e colocamos um Tread.sleep(3000) com 3 segundos 
+						no serviço de HotelResource no nosso microserviço de Hotel sendo assim, quando o microserviço de travelorder bate no microserviço de hotel, o hotel vai voltar resposta com 3 segundo, mas o limite de espera do
+						microserviço de HotelService é de 2 segundo, então dá erro e assim conseguimos monitorar testes de erro
+
+				- E para testar o Circuit Breacker, podemos colocar o PROGRAMA DO INSOMINIA para rodar requisições de meio em meio segundo e aí vai bater no Rest Client travelorder e vai retornar erro... só que aí entra em ação o Circuit Breacker
+					- E a cada 2 segundo ele para a chamada (ou seja, abre o circuito) e depois de 5 segundos ele tenta de novo... mas com o insominia batendo de meio em meio segundo, vc consegue ver ele abrindo e fechando o circuito e tentando
+						novamente depois de 5 segundos ou a cada 5 segudndos pq vai estar com intervalo de fazer nova requisição a cada meio segundo né hehehehe
+
+
+
+

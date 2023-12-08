@@ -1,0 +1,25 @@
+MODULO-02-AULA-01
+
+
+
+
+
+- DO MONÓLITO AO MICROSERVICE, USANDO JAVA NO BACKEND
+====================================================================================
+
+	- No quarkus tem o conceito de extensões que no fringir dos ovos são dependências, pois você vai encontrar elas no pom.xml.
+		É considerado extensões, pois vem com alguns códigos um pouco mais prontos para você utilizar no dia a dia, um esqueleto. É o termo que eles usam.
+
+	- RestEasy Reactive:
+		- Existe o RestEasy Classic (que antigamente era somente RestEasy) para entender essa mudança siga abaixo
+		- A engine do Quarkus roda em cima do Vert.X.
+		- Vert.x é um kit de ferramentas para construir aplicativos reativos. Conforme descrito na Arquitetura Reativa do Quarkus , o Quarkus usa Vert.x por baixo.
+		- Então o Quarkus consegue rodar tanto de forma reativa quanto de forma imperativa e boa parte da performance o Quarkus vem dessa execução que ele faz em cima do Vert.X
+		- Várias APIs originais do Quarkus vem sendo migradas para o modelo REATIVO também, ainda que você use ela de forma IMPERATIVA
+
+		-  Então você pode criar seus projetos reativos, mesmo programando de forma imperativa, pois vai te dar muito mais performance e vai ser melhor gerida dentro do Quarkus e se
+			quiser, depois pode usar também as opções reativas depois.
+
+
+	- Developer Mode
+		- É uma funcionalidade (em tempo de desenvolvimento) que o Quarkus te fornece com vários recursos e com várias funcionalidade e que aumenta bastante sua produtividade

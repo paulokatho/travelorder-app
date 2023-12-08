@@ -1,0 +1,471 @@
+
+
+- DO MONÓLITO AO MICROSERVICE, USANDO JAVA NO BACKEND
+====================================================================================
+
+	- link dos projetos no git
+		- https://github.com/paulokatho/travelorder-app
+		- https://github.com/paulokatho/flight-app
+		- https://github.com/paulokatho/hotel-app
+
+
+- AULA DE HOJE
+====================================================================================
+
+- Conteinerizar esses nossos microserviços
+- Fazer o deploy deles no Kubernetes
+- Usar Virtual Threads do Java 21
+
+
+- BORA PRO PEGA!!!
+====================================================================================
+
+- Vamos de fato transformar em serviços remotos distribuídos
+- Colocar esses nossos serviços para execeutar em Virtual Threads
+
+
+
+- Conteinerizar as Aplicações
+====================================================================================
+
+
+- Aplicação ---> travelorder-app
+
+	- Essa aplicação vai estar sempre olhando para as outras duas aplicações que são o flight-app e o hotel-app
+	- Esses serviços são chamados de Serviços Remotos 
+
+		- Serviços Remotos
+			- São chamados de Serviços Remotos, serviços que estão sendo chamados através de uma interface Rest Client
+			- Nesse momento na nossa interface Rest Client, estamos chamando os microserviços atraves do FlightService e HotelService que estão configurados nessa interface
+				Rest Client.
+			- A chamada aos microserviços está sendo dada atraves da anotação @RegisterRestClient(baseUri = 'http://localhost:8081/flight'), por exemplo
+
+
+	- Deploy
+		- Para que eu tenha uma aplicação, nesse nosso caso é um microserviço, do jeito que faremos hoje que é num Kubernetes que é um Orquestrador de Containers
+		- Preciso de 2 coisas
+			- Tenho que ser capaz de transformar essa aplicação em 1 Container
+			- E preciso ser capaz de fazer o deploy no Kubernetes
+
+		- 2 novas extensões no projeto serão necessárias
+			- Extensão que vai transformar essas aplicações em Conteiner
+			- E outra extensão que vai ajudar absurdamente a fazer o deploy dessa aplicação no Kubernetes
+
+	- Site do Quarkus Dev IO e pegar as extensões para acrescentar no projeto
+	
+	- Extensões:
+		- quarkus-container-image-jib
+			
+			- O Jib (Container Image Jib) -> é um projeto Open Source e vamos usar 1 recurso dele que já ajuda muito os devs
+			- Ele permite que você gere imagens de Containers, sem você precisar ter um Docker Engine local, ou seja, sem ter o Docker instalado na sua máquina
+			
+			- Pense:
+				- As vezes na nossa máquina isso não faça muita diferença, porque geralmente os devs tem o Docker instalado mesmo que já usa para trabalhar
+				- Mas antes de existirem soluções como essa que são chamadas de soluções Dockerless, para criar imagens de Containers sem ter o Docker, tinha que ter um Docker na máquina do Pipeline Automatizado, que não
+					estava rodando Docker lá, mas o dev precisava criar um Docker só para construir imagens, o que ficava sem sentido, pois gastava recursos a toa do servidor (geralmente pago!!!)
+				- A partir do momento que começou a ter essas soluções Dockerless, o dev consegue construir Pipelines apenas construindo imagens que é o que eles precisam fazer
+				- Isso ajuda muito quando pensa no contexto geral da organização, do nosso projeto e não só na maquina local do dev
+
+		- quarkus-kubernetes
+			
+			- Esse cara vai ajudar demais quando for fazer o deploy da aplicação no Kubernetes 
+
+		- Acrescentar essas 2 extensões nos microserviços ou seja nos projetos -----> flight-app e hotel-app
+
+			###############################
+			### CONFIG IMAGEM DOCKER HUB ##
+			###############################
+			quarkus.container-image.registry=docker.io
+			quarkus.container-image.group=eldermoraes
+			quarkus.container-image.name=travelorder-app
+			quarkus.container-image.tag=1.0-SNAPSHOT
+
+				- configurações do docker hub pra subir nossa imagem para lá
+				- colocar nossas configurações do projeto flight-app e hotel-app
+
+
+			###############################
+			### CONFIG KUBERNETES #########
+			###############################
+			quarkus.kubernetes.service-type=load-balancer
+			quarkus.kubernetes-client.trust-certs=true
+
+				- o service.type = load=balancer ---> vai dar um DNS publico de acesso no Kubernetes
+				- o trues-certs = true ---> só porque não vamos usar SSL porque esses nossos projetos são apenas como uma demo e assim conseguimos usar sem SSL
+
+
+	- Nesses projetos de estudo, localmente estamos utilizando o postgres. Só que o Dev Services quando vocẽ não tem maiores configurações do que vc quer utilizar (nesse nosso caso a base de dados postgres)
+		ele vai e instacia isso para o Dev usando o Test Containers, já conecta sua aplicação e você já consegue usar.
+		Em produção não é assim, além de que o Dev Services não existe em produção, pois é uma feature do Developer Mode e porque produção é produção e precisamos do banco de produção
+
+		- Vamos fazer um ajuste na nossa aplicação flight-app e hotel-app
+			- Acrescentar uma configuração no application-properties desses caras
+
+				%prod.quarkus.datasource.password=quarkus
+				%prod.quarkus.datasource.username=quarkus
+				%prod.quarkus.datasource.jdbc.url=jdbc:postgresql://postgresql/quarkus
+
+			- Essas configurações %prod são um recurso do Quarkus para identificar que essas configurações serão utilizadas somente em produção
+
+		- Agora vamos criar nosso postgres na nuvem
+
+		- Vamos utilizar o Kubernetes da Red Hat que é o Open Shift Sandbox Developer
+
+			----------------------------------------------------------------------
+			- No arquivo MODULO-02-AULA-04 tem mais informações sobre o OpenShift-
+			----------------------------------------------------------------------
+
+
+		--------------------------------------------------------------------------------------------------------------------------------------------
+		
+		- Gerar token do openshit para se conectar
+			- You must obtain an API token by visiting https://oauth-openshift.apps.sandbox-m3.1530.p1.openshiftapps.com/oauth/token/request
+
+		- Link do Sandbox Developer
+			- https://developers.redhat.com/developer-sandbox?source=sso
+
+
+		- Qualquer coisa ver o arquivo
+			- openshift-como-realizar-login.txt
+
+		--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+	- Vamos utilizar um arquivo .yaml para criar nosso postgres no nosso openshift
+
+		- Copiar o arquivo do git do Elder e colocar em algum diretorio do projeto (pode ser qualquer um, pois vamos executar com linha de comandos esse arquivo)
+
+			- kubectl apply -f postgres.yaml
+
+		- no application-properties vamos deixar as configurações como estão
+			- também que trocas as informações da imagem que vamos gerar... temos que colocar nossas configurações do nosso docker hub
+		- a porta que estamos subindo a aplicação, para fins didáticos, também podemos deixar
+		- o kubernetes se resolve com a questão das portas. Não existe conflito de portas dentro do orquestrador
+
+	- Deploy no OpenShift
+
+		- Depois que está tudo "pronto", criamos nossa configuração de "prod.quarkus", conectamos no OpenShift, agora vamos fazer login na nossa conta do docker hub
+
+			- sudo docker login -> digitar suas credenciais
+
+		- Docker Hub e Deploy
+			- Vamos utilizar um comando que vai empacotar nossa aplicação java, vai gerar uma imagem da nossa aplicação flight-app e vai fazer o deploy no Kubernetes dessa imagem que vai estar no Docker Hub
+
+				------------------------------------------------------------
+					- mvn clean package -Dquarkus.kubernetes.deploy=true
+
+						- esse comando vai fazer todo o serviço do deploy
+				------------------------------------------------------------
+
+	
+
+	-----------------------------------
+	- COMANDOS OPENSHIFT, KUBERNTES E DOCKER
+
+		- oc login
+		- kubectl get pods
+		- kubectl apply -f postgres.yaml
+		- watch kubectl get pods
+		- sudo docker login (loga nosso host com o docker hub) para podermos enviar nossa imagem para lá
+		
+		- Depois que criou o serviço e o deploy -> como expor o serviço?
+			- kubectl get svc
+				- exibe os serviços que subimos
+			- oc expose svc flight-app
+				- para expor a porta de um serviço que subimos no Sandbox
+			- kubectl get routes
+				- exibe na tela as rotas
+
+
+
+
+	-----------------------------------
+
+
+		===================================
+			DEPLOY CRIADO NO OPENSHIFT
+		===================================	
+
+	- Nesse momento são criados 2 caras lá no sandbox pra nós
+		- Service flight-app
+		- Deployment flight-app
+
+		- Então foi criado o serviço e o deploy
+
+
+	- Service
+		- o Service no Kubernetes é o cara que a gente usa para acessar nossa aplicação e que vai dar o DNS e tals
+
+		- kubectl get svc
+			- com esse comando você obtém informações do seu serviço
+
+		- Ao digitar esse comando vc vai encontrar uma coluna que é 
+			- EXTERNAL-IP -> é o IP que eu usaria para acessar minha aplicação
+
+			- OBS expecífica para o DELOPER SANDBOX do OpenShift
+
+				- Ele está dentro de uma estrutura na AWS 
+					- Sabemos que os recursos que utilizamos lá são de acordo com o limite que queremos gastar e outras diversas limitações e o Sandbox atigiu o limite de IP's publicos
+					- Milhares de pessoas já criaram clusters no Sandbox
+
+					- Em teoria ele não conseguiria acessar IP's externos, porém tem um recurso para contornar isso
+
+						- Se chama : ROUTE
+							- a Rota 
+							- Podemos criar uma rota para esse service
+							- E ao criar a Rota para esse Service, o OpenShift cria um DNS e através do DNS conseguimos acessar nossa aplicação
+
+						- Como fazemos isso?
+							- oc expose svc flight-app
+
+								- oc: é o client do OpenShift
+								- expose: expõe um determinado serviço
+								- svc: é referenciando que é um service
+								- flight-app: é referente ao nome do serviço que estamos querendo expor ele, e esse é o serviço de flight-app que estamos usando nos estudos
+
+							- resposta do terminal depois de digitar o comando expose
+
+								- route.route.openshift.io/flight-app exposed
+
+							
+							- onde está a Rota?
+								- kubectl get routes
+
+									- resposta no terminal
+
+										- NAME         HOST/PORT                                                            PATH   SERVICES     PORT   TERMINATION   WILDCARD
+										  flight-app   flight-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com          flight-app   http                 None
+
+							-----------------------------
+								- testar a rota
+
+									- esse o nosso DNS
+										- flight-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com
+
+									- nossa rota para nossa aplicação app-flight para o metodo rest GET ALL
+
+										- curl flight-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/flight
+
+										- tem que retornar um array vazio, pois não temos nada no nosso postgresql lá do sandbox
+
+							-----------------------------
+
+	- ACIMA É O SERVIÇO DE flight-app
+
+
+=======================================================================================================================================================================
+	- Microservico Travel Order
+
+		- Agora vamos até o nosso microserviço Client Rest 
+
+			- travelorder
+
+			- na interface
+				- FlightService
+				- colocar nosso DNS que agora vai ser o endereço da nossa aplicação
+
+				- @RegisterRestClient
+					- adicionar no DNS na nossa "baseUri"
+				
+					- Ficou assim
+
+						@RegisterRestClient(baseUri = "http://flight-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/flight")
+
+
+	=======================================================================================================================================================================
+		- hotel-app
+
+			- Fazer as mesmas coisas que foram feitas para o flight-app e subir a imagem para o Docker Hub e depois o deploy para o OpenShift
+
+			- application.properties
+				- Copiar nossa config de base de dados de "%prod" para ele
+				- Copiar as configurações de 
+					- Docker Hub
+					- Kubernetes
+
+					- Igual foi feito no application.properties do flight-app
+
+			- Extensões
+				- Acrescentar as extensões para podermos utilizar esses recursos do Docker e do Kubernetes
+
+					- mvn quarkus:add-extension -Dextensions-"quarkus-container-image-jib, quarkus-kubernetes"
+
+			- Deploy
+
+				------------------------------------------------------------
+					- mvn clean package -Dquarkus.kubernetes.deploy=true
+
+						- esse comando vai fazer todo o serviço do deploy
+				------------------------------------------------------------
+
+			===================================
+			DEPLOY CRIADO NO OPENSHIFT
+			===================================	
+
+		- Agora tem 3 serviços lá no nosso OpenShift
+			- hotel-app
+			- flight-app
+			- postgresql
+
+
+		- Service - do hotel-app
+			
+			- kubectl get svc
+				- com esse comando você obtém informações do seu serviço
+
+			- Pegar o EXTERNAL-IP
+
+				- Expor nossa Rota
+					- oc expose svc flight-app
+
+				- Pegar nossa Rota
+					- kubectl get routes
+
+						- resposta no terminal
+
+							- hotel-app   hotel-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com
+
+								-----------------------------
+									- testar a rota
+
+										- esse o nosso DNS
+											- hotel-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com
+
+										- nossa rota para nossa aplicação app-hotl para o metodo rest GET ALL
+
+											- curl hotel-app-katho-mau-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/hotel
+
+											- tem que retornar um array vazio, pois não temos nada no nosso postgresql lá do sandbox
+
+								-----------------------------
+
+ 			
+
+- kubernetes.yml
+	
+	- Após todo esse trabalho vai gerar um arquivo .yml
+	- Nesse arquivo estarão várias configurações da nossa aplicação, isso é feito naquele momento do empacotamenteo 
+
+		- No Dpackage
+
+	- Ele manteve as configurações e parâmetros que informamos e criou alguns a partir da própria extensão do Quarkus, quando inserimos a extensão do projeto lá no pom.xml
+		- extensão: quarkus-kubernetes
+
+	- port: 8082
+		- Ele manteve a porta do microserviço do hotel-app que estavamos utilizando
+		- Externalmente não importa mais, mas dentro do container vai permanecer essa porta
+
+	- Load Balancer
+		- Serviço do tipo que definimos será o Load Balancer
+
+	- kind
+		- Vai ser do tipo Deployment
+
+	- name
+		- hotel-app
+
+	- replicas
+		- 1
+		- essa é definida por default = 1, mas podemos aumentar
+
+	- image
+		- docker.io/kathodocker/hotel-app:1.0-SNAPSHOT
+		- que é a definição de demos
+
+	- Liveness Check e Readiness Check
+		- ele já criou por default e deixou o endereço (path) pra gente poder acessar na nossa aplicação em produção também
+		- ex:
+			- /q/health/live
+			- /q/health/ready
+
+	- Startup Probe
+		- é outra verificação que a nossa extensão já nos deixa disponível para ajudar a manter a "saúde" da nossa aplicação
+		- path
+			- ex:
+				- /q/health/started
+
+
+	- Essa é uma das vantagens de se usar a especificação, pois ela já te dá tudo isso
+		- Ela já vai te dar o endpoint, mesmo que você não tenha customizado ele
+
+		- Então ela vai para o Kubernetes para ter um HelthCheck funcionando
+
+		- Tudo isso veio pela nossa extensão do Quarkus que é o Kubernetes
+			- E se precisarmos mexer em algo na aplicação que interfira nessa configuração do .yml, quando gerarmos de novo nosso pacote, ele já cria com as alterações necessárias
+
+
+	--------------------------------
+		- Já estão no Kuberntes
+			- fligh-app
+			- hotel-app
+	--------------------------------
+
+
+	=======================================================================================================================================================================
+	- TRAVEL ORDER (travelorder-app)
+
+		- Agora o ideal de ser feito de subir o travelorder para o Kubernetes é verificar se ele está funcionando certinho com os outros 
+			microserviços que ele acessa já deployados no Openshift.
+			Lembra que colocamos o caminho "exposto" ou o caminho do DNS que ele liberou pra gente poder acessar?
+			Então, agora é testar, pois acrescentamos ele nas nossas interfaces HotelService e FlightService
+
+		- Agora fazer o mesmo processo que foi feito no flight-app e no hotel-app
+
+			- Add config no application.properties
+			- Add extensions do Quarkus que são do kubernetes e do jib 
+			- Fazer o deploy no docker hub e no Openshift
+			- Expor a porta do projeto
+				- travelorder
+				- lá no Kubernetes, claro
+			- Testar a aplicação
+
+
+	=======================================================================================================================================================================
+	- VIRTUAL THREADS
+
+	- Tem uma aula desse recurso no curso, vou anotar detalhes depois
+
+		- Java 21
+			- Primeira coisa é ir no pom.xml e mudar para 21 o java
+				- <maven.compiler.release>21</maven.compiler.release> 
+
+		- Virtual Threads
+			- Não é simplismente sair usando
+			- Tem que saber porque usa, em que momento que usa
+			- Por isso assistir a aula dele no modulo da Confraria Dev
+
+		- Quakus e Virtual Threads
+
+			- Como o Quarkus disponibiliza as Vitual-Threads para os devs
+
+			- @RunOnVirtualThread
+				- Com essa anotação conseguimos começar a utilizar
+
+				- Por baixo dos panos o Quarkus vai se virar para pegar esse metodo que você HABILITOU para usar Virtual Thread e vai alocar numa Virtual Thread pra vocẽ
+
+				- Como saber se está rodando Virtual Threads ou não?
+					- Vamos colocar um simples "sysout" só para ter o visual no nosso terminal
+					- Não precisa, mas é mais para ver ele funcionando
+
+		- Para testar
+
+			- Vamos no metodo que colocamos a Virtual Threads e vamos rodar a aplicação
+			- Nesse caso para estudos, colocamos no GET, getAll() do projeto "travelorders", na camada de Resource
+			- Só rodar a aplicação e chamar o método getAll()
+				- Se der erro
+					- Se for erro de Virtual Threads, é só colocar reiniciar a aplicação, mas antes dar um "clean" no manven e rodar de novo
+
+		- Classe toda
+			- É possível colocar para rodar todos os metodos da nossa classe de TravelOrderResource como Virtual Threads
+			- Ao invés de colocar a @Anotação só em um metodo, é so colocar na declaração da classe, pois aí todos os metodos estarão contemplados pela Virtual Thread
+
+		- Teste
+			- Na aplicação precisa colocar o pom.xml para o java 21
+			- Se não estiver configurado no computador, tem que setar para o java 21
+			- No método getAll() colocar um SysOut() para aparecer no Brouser a Virtual Thread
+				- System.out.println("Virtual Thread Katho - " + Thread.currentThread());
+			- Hora que chamar esse metodo no Postman, Insomnia ou curl, vai cuspir algo como isso
+
+				 - Virtual Thread Katho - VirtualThread[#230,quarkus-virtual-thread-0]/runnable@ForkJoinPool-1-worker-4
+
+				 - Aí da pra ver a Thread que ele está atribuindo essa request
