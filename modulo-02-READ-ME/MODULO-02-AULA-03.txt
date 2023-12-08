@@ -1,0 +1,125 @@
+MODULO-02-AULA-03
+
+
+
+- COMANDO PARA ADICIONAR UMA EXTENSÃO MANUALMENTE NO QUARKUS
+
+	- mvn quarkus:add-extension -Dextensions="quarkus-rest-client-reactive-jsonb"
+
+
+
+- DO MONÓLITO AO MICROSERVICE, USANDO JAVA NO BACKEND
+====================================================================================
+
+	- No quarkus tem o conceito de extensões que no fringir dos ovos são dependências, pois você vai encontrar elas no pom.xml.
+		É considerado extensões, pois vem com alguns códigos um pouco mais prontos para você utilizar no dia a dia, um esqueleto. É o termo que eles usam.
+
+	- RestEasy Reactive:
+		- Existe o RestEasy Classic (que antigamente era somente RestEasy) para entender essa mudança siga abaixo
+		- A engine do Quarkus roda em cima do Vert.X.
+		- Vert.x é um kit de ferramentas para construir aplicativos reativos. Conforme descrito na Arquitetura Reativa do Quarkus , o Quarkus usa Vert.x por baixo.
+		- Então o Quarkus consegue rodar tanto de forma reativa quanto de forma imperativa e boa parte da performance o Quarkus vem dessa execução que ele faz em cima do Vert.X
+		- Várias APIs originais do Quarkus vem sendo migradas para o modelo REATIVO também, ainda que você use ela de forma IMPERATIVA
+
+		-  Então você pode criar seus projetos reativos, mesmo programando de forma imperativa, pois vai te dar muito mais performance e vai ser melhor gerida dentro do Quarkus e se
+			quiser, depois pode usar também as opções reativas depois.
+
+
+	- Developer Mode
+		- É uma funcionalidade (em tempo de desenvolvimento) que o Quarkus te fornece com vários recursos e com várias funcionalidade e que aumenta bastante sua produtividade
+
+	
+
+- AULA 03
+====================================================================================
+
+	- Dev Services
+		- O Quarkus tem essa funcionalidade e ela auxilia e muito na hora do desenvolvimento, pois imagine o seguinte cenário
+		- Você não tem um banco de dados postgres, por exemplo. Então só acrescentan a propriedade database do "kind" na aplicação, no application.porperties e no pom.xml.
+			Então o Quarkus identifica que você quer usar um banco de dados postgres e ele baixa automaticamente uma imagem docker do postgres e deixa pronto, só pra vc usar.
+			- Dá pra usar com Kafka, por exemplo também e mais um monte de coisas
+				- link: https://quarkus.io/guides/dev-services
+
+			É uma baita mão na roda.
+		- Exemplo application.porperties
+
+			###############################
+			### DATASOURCE POSTGRESQL DEV #
+			###############################
+			quarkus.datasource.db-kind=postgresql
+			quarkus.hibernate-orm.database.generation=drop-and-create
+
+		- no pom.xml, vc pode remover na mão o banco que vc tiver, nesse caso era o H2 e acrescentar o postgres. Ou também pode remover na linha de comando.
+
+			- removendo H2: ./mvnw quarkus:remove-extension -Dextension=quarkus-jdbc-h2
+			- adicionando postgres: ./mvnw quarkus:add-extension -Dextension=quarkus-jdbc-posgresql
+
+		- agora só rodar o projeto
+			- mvn quarkus:dev
+
+	- Dev UI
+		- Nessa funcionalidade, vc tem um "user interface" do Quarkus. E nele vc pode conferir algumas coisas do seu projeto
+		- Inclusive dá para verificar os Dev Services que você está utilizando no seu projeto
+			- link: http://localhost:8080/q/dev-ui/dev-services
+
+
+	- Microservices
+		- Quebrando a aplicação em microserviços
+		- copiar as dependencias que vamos utilizar
+
+		- criar o projeto lá no link:
+			- code.quarkus.io
+
+			- acrescentar as dependencias abaixo>
+				quarkus-resteasy-reactive-jsonb		  
+			    quarkus-resteasy-reactive
+			    quarkus-hibernate-orm-panache
+			    quarkus-jdbc-postgresql
+	
+		- Porque usar microserviços?
+			- A decisão ou não de utilizar microserviços não deve ser baseada em tecnologia. Essa decisão tem que ser baseada na estrutura que sua equipe trabalha.
+			- Exemplo, se eu estiver desenvolvendo uma aplicação sozinho, não faz sentido eu utilizar um monte de microserviços. Até porque será você que estará administrando isso.
+
+			- Uma equipe baseada em Silos
+				- Exemplo, todo mundo de backend trabalhando juntos, todos de frontend trabalhando juntos, todos de banco de dados trabalhando juntos.
+				- Equipes estruturadas dessa forma em Silos tem uma saída natural de desenvolvimento do monolitos
+
+			- Equipes Multidisciplinares
+				- Se você trabalha com equipes estruturadas com um tamanho menor, reduzido, com perfis diferentes e habilidades diferentes.
+				- Aí talvez faça sentido ter unidades menores do seu sistema sendo desenvolvidas por essas equipes ou células menores
+
+				- Isso segundo até Martin Fowler que colocou no site dele o conceito de microserviços que tem fundamento em um artigo ainda mais antigo que diz:
+					- Empresas que desenham sistemas estão destinadas a contruirem representações desses sistemas que sejam representações diretas da forma que elas se comunicam internamente
+
+					- Então a forma que suas equipes estão distribuídas, estão estruturadas dentro da empresa vai definir a forma que vocês entregam um software
+
+			- Então se vc estiver desenvolvendo um software sozinho ou uma equipe muito reduzida, provavelmenten não terá a necessidade de utilizar microserviços.
+
+				- DETALHE
+					- Você não deveria utilizar só porque você quer, você deve utilizar microserviços se a aplicação tiver necessidade
+					- Como por exemplo, se você precisar escalar uma parte do seu sistema, aí tem que sentar com os responsáveis do projeto para ver a real necessidade de se aplicar a arquitetura de microserviços ou não aplicar
+					- Mas provavelmente não seja tão usual
+
+			- Se lembre da questão da Amazon, da Prime Video que conseguiu reduzir em 90% do seu custo quando fez o downgrade dos microserviços para monolito
+
+
+
+		- Durante o desenvolvimento, enquanto estamos quebrando em microserviços, teremos problemas com as portas que as aplicações vão subir
+			Quando a aplicação estiver no Kubernetes, isso não será um problema, mas até ter algo no Kubernetes podemos arrumar, somente redirecionando as portas que nossos microserviços vão subir no Quarkus
+
+				- no application.properties
+					- quarkus.http.port=8080
+
+
+		- Durante o desenvolvimento vamos utilizar REST CLIENT REACTIVE, pois ele vai fazer a comunicação entre os microserviços.
+			Ele que vai se comunicar com os outros endpoints rest das outras aplicações
+
+
+			- REST Client Reactive -> acrescentar no projeto
+				- quarkus-rest-client-reactive lá no site do code.quarkus.io junto com as outras extensões que estão descritas ali em cima
+
+
+			- PROBLEMA NO JSONB
+				- quando for criar um client rest, o ideal é acrescentar o conversor de json, o "json b" do resteasy, para não dar problema
+
+				- mvn quarkus:add-extension -Dextensions="quarkus-rest-client-reactive-jsonb"
